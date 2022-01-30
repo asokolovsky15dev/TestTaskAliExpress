@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using FluentMigrator.Runner;
+using System.Reflection;
 
 namespace TestTaskAliExpress
 {
@@ -25,6 +27,12 @@ namespace TestTaskAliExpress
 
             services.AddTransient<ICategoryService, CategoryService>();
             services.AddTransient<ICategoryRepository, CategoryRepository>();
+
+            services.AddFluentMigratorCore()
+              .ConfigureRunner(config =>
+                               config.AddPostgres()
+              .WithGlobalConnectionString(Configuration.GetConnectionString("DefaultConnection"))
+              .ScanIn(Assembly.GetExecutingAssembly()).For.All());
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -46,6 +54,11 @@ namespace TestTaskAliExpress
             {
                 endpoints.MapControllers();
             });
+
+            //https://dotnetcorecentral.com/blog/fluentmigrator/
+            using var scope = app.ApplicationServices.CreateScope();
+            var runner = scope.ServiceProvider.GetService<IMigrationRunner>();
+            runner.MigrateUp();
         }
     }
 }
